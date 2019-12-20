@@ -34,6 +34,10 @@ vignettes/*.pdf
 # Temporary files created by R markdown
 *.utf8.md
 *.knit.md
+*.nb.html
 
 # R Environment Variables
 .Renviron
+
+# Shiny token, see https://shiny.rstudio.com/articles/shinyapps.html
+rsconnect/
