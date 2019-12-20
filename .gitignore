@@ -41,3 +41,7 @@ vignettes/*.pdf
 
 # Shiny token, see https://shiny.rstudio.com/articles/shinyapps.html
 rsconnect/
+
+# other practice stuff
+practice_app.R
+sample_app.R
