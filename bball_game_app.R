@@ -10,7 +10,7 @@
 library(tidyverse)
 library(rvest)
 library(shiny)
-source("extract_game_table.R")
+source("background_functions.R")
 
 # First load and process the data from NBB.
 nbb_link <- "https://www.basketball.nl/basketball/starten-met-basketball/vereniging-zoeken/club/463/team/381/bc-schrobbelaar-mse-3/competition/409/"
