@@ -12,7 +12,7 @@ library(rvest)
 library(shiny)
 source("extract_game_table.R")
 
-
+# First load and process the data from NBB.
 nbb_link <- "https://www.basketball.nl/basketball/starten-met-basketball/vereniging-zoeken/club/463/team/381/bc-schrobbelaar-mse-3/competition/409/"
 
 schrob <- read_html(nbb_link)
@@ -28,11 +28,16 @@ home <- home_xml %>% html_text(trim = TRUE)
 
 game_table <- extract_game_table(home = home, away = away)
 
+rm(list = c("nbb_link", "schrob", "away_xml", "home_xml", "away", "home"))
+
+# Now we prepare the data for inference with Stan
+
+
 
 # Set up User Interface
 ui <- fluidPage(
     dateInput("date", label = "Select Date"),
-    selectInput("team", "Select a team", sort(unique(game_table$home_team))),
+    selectInput("team", "Select a team", sort(unique(game_table$home_team)), selected = "BC Schrobbelaar MSE 3"),
     actionButton("click", "Update Predictions"),
     textOutput("game_list"),
     textOutput("predictions")
