@@ -1,21 +1,3 @@
-library(tidyverse)
-library(rvest)
-
-nbb_link <- "https://www.basketball.nl/basketball/starten-met-basketball/vereniging-zoeken/club/463/team/381/bc-schrobbelaar-mse-3/competition/409/"
-
-schrob <- read_html(nbb_link)
-
-
-away_xml <- schrob %>%
-  html_nodes(".c-season-statistics-match-result__away")
-
-home_xml <- schrob %>%
-  html_nodes(".c-season-statistics-match-result__home")
-
-away <- away_xml %>% html_text(trim = TRUE)
-home <- home_xml %>% html_text(trim = TRUE)
-
-
 extract_game_table <- function(home, away) {
   if (length(home) != length(away)) {
     stop("Home and away must be of equal length")
@@ -49,5 +31,3 @@ extract_game_table <- function(home, away) {
                played = played)
   df
 }
-
-game_table <- extract_game_table(home = home, away = away)
