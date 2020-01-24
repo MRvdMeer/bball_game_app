@@ -36,8 +36,25 @@ extract_game_table <- function(home, away) {
                away_score = away_score,
                played = played)
   
-  # finally, remove duplicates
+  # remove duplicates
   df <- df %>% distinct(home_team, away_team, .keep_all = TRUE)
+  
+  # add winner
+  
+  df <- df %>% mutate(home_win = home_score > away_score)
   
   df
 }
+
+
+
+lookup_team_id <- function(team_name_lookup, mapping_table) {
+  # finds team ID from team name and mapping table
+  tmp_table <- filter(mapping_table, team_name == team_name_lookup)
+  if (nrow(tmp_table) != 1) {
+    stop(paste("lookup-rows should be equal to one but found", nrow(tmp_table), "instead"))
+  }
+  out <- tmp_table$team_id
+  out
+}
+
