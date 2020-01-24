@@ -58,3 +58,44 @@ lookup_team_id <- function(team_name_lookup, mapping_table) {
   out
 }
 
+print_stanfit_custom_name <- function(stanfit, regpattern, replace_by, ..., ndigits = 2, verbose = TRUE) {
+  temp <- summary(stanfit, ...)
+  tempsum <- temp$summary
+  rn <- rownames(tempsum)
+  loc <- grep(pattern = regpattern, rn)
+  
+  if (length(loc) != length(replace_by)) {
+    stop("replacement length not the same as length of replaced values")
+  }
+  
+  rn[loc] <- replace_by
+  rownames(tempsum) <- rn
+  
+  if (verbose) {
+    n_kept <- stanfit@sim$n_save - stanfit@sim$warmup2
+    sampler <- attr(stanfit@sim$samples[[1]], "args")$sampler_t
+    
+    cat("Inference for Stan model: ", stanfit@model_name, '.\n', sep = '')
+    cat(stanfit@sim$chains, " chains, each with iter=", stanfit@sim$iter,
+        "; warmup=", stanfit@sim$warmup, "; thin=", stanfit@sim$thin, "; \n",
+        "post-warmup draws per chain=", n_kept[1], ", ",
+        "total post-warmup draws=", sum(n_kept), ".\n\n", sep = '')
+  }
+  
+  tempsum[, "n_eff"] <- round(tempsum[, "n_eff"], 0)
+  print(round(tempsum, digits = ndigits))
+  
+  if (verbose) {
+    cat("\nSamples were drawn using ", sampler, " at ", stanfit@date, ".\n",
+        "For each parameter, n_eff is a crude measure of effective sample size,\n",
+        "and Rhat is the potential scale reduction factor on split chains (at \n",
+        "convergence, Rhat=1).\n", sep = '')
+  }
+  
+  invisible(stanfit)
+}
+
+inv_logit <- function(x) {
+  1 / (1 + exp(-x))
+}
+
