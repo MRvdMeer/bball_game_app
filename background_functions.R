@@ -92,7 +92,7 @@ print_stanfit_custom_name <- function(stanfit, regpattern, replace_by, ..., ndig
         "convergence, Rhat=1).\n", sep = '')
   }
   
-  invisible(stanfit)
+  tempsum
 }
 
 inv_logit <- function(x) {
