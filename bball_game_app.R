@@ -45,6 +45,7 @@ game_table <- game_table %>% mutate(away_team_id = team_id[1:N_games], home_team
 rm(list = c("nbb_link", "schrob", "away_xml", "home_xml", "away", "home", "team_id"))
 
 # Now we prepare the data for inference with Stan
+games_played <- game_table %>% filter(played)
 games_not_played <- game_table %>% filter(!played)
 
 stan_data <- list(N_games = nrow(games_played),
