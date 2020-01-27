@@ -67,12 +67,27 @@ hc_est <- x[N_teams + 1]
 skill_table <- tibble(id = 1L:11L, team_name = unique_teams, estimated_skill = skill_est)
 N_games_unplayed <- nrow(games_not_played)
 
+post <- extract(fit_logit, pars = c("team_skill", "home_court_advantage"), permuted = TRUE)
+
 home_win_prob <- numeric(N_games_unplayed)
 for (n in 1:N_games_unplayed) {
-    home_win_prob[n] <- inv_logit( skill_est[games_not_played$home_team_id[n]] + hc_est - skill_est[games_not_played$away_team_id[n]])
+    home_win_prob[n] <- mean(
+        inv_logit(
+            post$team_skill[, games_not_played$home_team_id[n]] + post$home_court_advantage -
+                post$team_skill[, games_not_played$away_team_id[n]]
+            )
+    )
 }
 
 games_not_played <- games_not_played %>% select(home_team, away_team) %>% mutate(home_win_prob = home_win_prob)
+
+
+# home_win_prob <- numeric(N_games_unplayed)
+# for (n in 1:N_games_unplayed) {
+#     home_win_prob[n] <- inv_logit( skill_est[games_not_played$home_team_id[n]] + hc_est - skill_est[games_not_played$away_team_id[n]])
+# }
+# 
+# games_not_played <- games_not_played %>% select(home_team, away_team) %>% mutate(home_win_prob = home_win_prob)
 
 
 ############# End of pre-computed objects #############
@@ -99,6 +114,7 @@ ui <- fluidPage(
                plotOutput("plot")
                ),
         column(7,
+               textOutput("previous_games_header"),
                tableOutput("previous_games")
                )
     )
@@ -134,12 +150,20 @@ server <- function(input, output, session) {
     })
     
     output$plot <- renderPlot({
-        stan_plot(fit_logit, pars = c("team_skill", "home_court_advantage"))
+        #stan_plot(fit_logit, pars = c("team_skill", "home_court_advantage"))
+        tmp <- team_mapping_table %>% filter(team_name == input$team)
+        id <- tmp$team_id
+        plotdata <- data.frame(skill = post$team_skill[, id])
+        
+        ggplot(data = plotdata, aes(x = skill) ) +
+            geom_histogram(fill = "red", col = "black", bins = 30) + theme_bw() +
+            geom_vline(xintercept = mean(plotdata$skill), color = "blue") +
+            ggtitle("Estimated skill") + xlab(paste("Skill distribution for team", input$team) )
     })
     
-    output$home_court_est <- renderText({
-        paste("Estimated home court effect:", round(hc_est, digits = 2) )
-    })
+    output$home_court_est <- renderText( paste("Estimated home court effect:", round(hc_est, digits = 2) ))
+    
+    output$previous_games_header <- renderText( paste("Previous games for", input$team) )
     
     output$previous_games <- renderTable({
         games_played %>%
@@ -150,5 +174,5 @@ server <- function(input, output, session) {
 
 }
 
-# Run the application 
+# Run the application
 shinyApp(ui = ui, server = server)
