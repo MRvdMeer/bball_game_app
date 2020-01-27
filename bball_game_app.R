@@ -156,8 +156,8 @@ server <- function(input, output, session) {
         plotdata <- data.frame(skill = post$team_skill[, id])
         
         ggplot(data = plotdata, aes(x = skill) ) +
-            geom_histogram(fill = "red", col = "black", bins = 30) + theme_bw() +
-            geom_vline(xintercept = mean(plotdata$skill), color = "blue") +
+            geom_histogram(fill = "lightblue", col = "black", bins = 30) + theme_bw() +
+            geom_vline(xintercept = mean(plotdata$skill), color = "red") +
             ggtitle("Estimated skill") + xlab(paste("Skill distribution for team", input$team) )
     })
     
