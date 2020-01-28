@@ -82,6 +82,7 @@ for (n in 1:N_games_unplayed) {
 games_not_played <- games_not_played %>% select(home_team, away_team) %>% mutate(home_win_prob = home_win_prob)
 
 
+
 # home_win_prob <- numeric(N_games_unplayed)
 # for (n in 1:N_games_unplayed) {
 #     home_win_prob[n] <- inv_logit( skill_est[games_not_played$home_team_id[n]] + hc_est - skill_est[games_not_played$away_team_id[n]])
