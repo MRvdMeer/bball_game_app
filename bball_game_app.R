@@ -147,7 +147,7 @@ server <- function(input, output, session) {
         print_stanfit_custom_name(fit_logit,
                                   regpattern = "team_skill", replace_by = unique_teams,
                                   pars = c("team_skill", "home_court_advantage"))
-        skill_table
+        skill_table %>% arrange(desc(estimated_skill))
     })
     
     output$plot <- renderPlot({
