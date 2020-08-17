@@ -16,7 +16,9 @@ options(mc.cores = parallel::detectCores())
 rstan_options(auto_write = TRUE)
 
 # First load and process the data from NBB.
-nbb_link <- "https://www.basketball.nl/basketball/starten-met-basketball/vereniging-zoeken/club/463/team/381/bc-schrobbelaar-mse-3/competition/409/"
+nbb_link <- "https://www.basketball.nl/basketball/starten-met-basketball/vereniging-zoeken/club/463/team/381/bc-schrobbelaar-mse-3/competition/4988/"
+
+# old link: "https://www.basketball.nl/basketball/starten-met-basketball/vereniging-zoeken/club/463/team/381/bc-schrobbelaar-mse-3/competition/409/"
 
 schrob <- read_html(nbb_link)
 
