@@ -10,19 +10,40 @@
 library(tidyverse)
 library(rvest)
 library(shiny)
-library(rstan)
+library(cmdstanr)
 source("background_functions.R")
 options(mc.cores = parallel::detectCores())
-rstan_options(auto_write = TRUE)
 
 # First load and process the data from NBB.
-game_table <- readRDS("game_table.rds")
+nbb_link <- "https://www.basketball.nl/basketball/starten-met-basketball/vereniging-zoeken/club/463/team/381/bc-schrobbelaar-mse-3/competition/4988/"
+
+# old link: "https://www.basketball.nl/basketball/starten-met-basketball/vereniging-zoeken/club/463/team/381/bc-schrobbelaar-mse-3/competition/409/"
+
+schrob <- read_html(nbb_link)
+
+away_xml <- schrob %>%
+    html_nodes(".c-season-statistics-match-result__away")
+
+home_xml <- schrob %>%
+    html_nodes(".c-season-statistics-match-result__home")
+
+away <- away_xml %>% html_text(trim = TRUE)
+home <- home_xml %>% html_text(trim = TRUE)
+
+game_table <- extract_game_table(home = home, away = away)
 
 unique_teams <- sort(unique(c(game_table$away_team, game_table$home_team)))
 
 N_games <- nrow(game_table)
 team_mapping_table <- tibble(team_name = unique_teams, team_id = 1:length(unique_teams))
 N_teams <- length(unique_teams)
+
+team_id <- map_int(c(game_table$away_team, game_table$home_team), lookup_team_id, mapping_table = team_mapping_table)
+game_table <- game_table %>% mutate(away_team_id = team_id[1:N_games], home_team_id = team_id[(N_games + 1):(2 * N_games)]) %>%
+    select(home_team_id, home_team, home_score, away_team_id, away_team, away_score, home_win, played)
+
+
+rm(list = c("nbb_link", "schrob", "away_xml", "home_xml", "away", "home", "team_id"))
 
 # Now we prepare the data for inference with Stan
 games_played <- game_table %>% filter(played)
@@ -36,40 +57,35 @@ stan_data <- list(N_games = nrow(games_played),
                   )
 
 # Fit Stan model
-logit_model <- stan_model("NBA_logit_homecourt.stan")
+logit_model <- cmdstan_model("NBA_logit_homecourt.stan")
 
-fit_logit <- sampling(logit_model, data = stan_data, chains = 4, iter = 10000)
+fit_logit <- logit_model$sample(data = stan_data,
+                                chains = 4,
+                                iter_warmup = 5000,
+                                iter_sampling = 5000)
 
 # Extract and use output
-x <- summary(fit_logit, pars = c("team_skill", "home_court_advantage"))$summary[,1]
+tmptst <- fit_logit$summary()
+tempsummary <- fit_logit$summary(c("team_skill", "home_court_advantage"))
+x <- tempsummary$mean
 skill_est <- x[1:N_teams]
 hc_est <- x[N_teams + 1]
 skill_table <- tibble(id = 1L:11L, team_name = unique_teams, estimated_skill = skill_est)
 N_games_unplayed <- nrow(games_not_played)
 
-post <- extract(fit_logit, pars = c("team_skill", "home_court_advantage"), permuted = TRUE)
+post <- fit_logit$draws(variables = c("team_skill", "home_court_advantage"), format = "draws_matrix")
 
 home_win_prob <- numeric(N_games_unplayed)
 for (n in 1:N_games_unplayed) {
     home_win_prob[n] <- mean(
         inv_logit(
-            post$team_skill[, games_not_played$home_team_id[n]] + post$home_court_advantage -
-                post$team_skill[, games_not_played$away_team_id[n]]
+            post[, games_not_played$home_team_id[n]] + post[, N_teams + 1] -
+                post[, games_not_played$away_team_id[n]]
             )
     )
 }
 
 games_not_played <- games_not_played %>% select(home_team, away_team) %>% mutate(home_win_prob = home_win_prob)
-
-
-
-# home_win_prob <- numeric(N_games_unplayed)
-# for (n in 1:N_games_unplayed) {
-#     home_win_prob[n] <- inv_logit( skill_est[games_not_played$home_team_id[n]] + hc_est - skill_est[games_not_played$away_team_id[n]])
-# }
-# 
-# games_not_played <- games_not_played %>% select(home_team, away_team) %>% mutate(home_win_prob = home_win_prob)
-
 
 ############# End of pre-computed objects #############
 
@@ -124,9 +140,10 @@ server <- function(input, output, session) {
     })
     
     output$skill_est <- renderTable({
-        print_stanfit_custom_name(fit_logit,
-                                  regpattern = "team_skill", replace_by = unique_teams,
-                                  pars = c("team_skill", "home_court_advantage"))
+        print_cmdstan_custom_name(fit_logit,
+                                  regpattern = "team_skill",
+                                  replace_by = unique_teams,
+                                  variables = c("team_skill", "home_court_advantage"))
         skill_table %>% arrange(desc(estimated_skill))
     })
     
@@ -134,7 +151,8 @@ server <- function(input, output, session) {
         #stan_plot(fit_logit, pars = c("team_skill", "home_court_advantage"))
         tmp <- team_mapping_table %>% filter(team_name == input$team)
         id <- tmp$team_id
-        plotdata <- data.frame(skill = post$team_skill[, id])
+        plotdata <- data.frame(post[, id])
+        colnames(plotdata) <- "skill"
         
         ggplot(data = plotdata, aes(x = skill) ) +
             geom_histogram(fill = "lightblue", col = "black", bins = 30) + theme_bw() +

@@ -95,6 +95,27 @@ print_stanfit_custom_name <- function(stanfit, regpattern, replace_by, ..., ndig
   tempsum
 }
 
+
+
+print_cmdstan_custom_name <- function(cmdstanfit, regpattern, replace_by, ..., ndigits = 2) {
+  tempsum <- cmdstanfit$summary(...)
+  tempvars <- tempsum$variable
+  loc <- grep(pattern = regpattern, tempvars)
+  
+  if (length(loc) != length(replace_by)) {
+    stop("replacement length not the same as length of replaced values")
+  }
+  
+  tempvars[loc] <- replace_by
+  tempsum['variable'] <- tempvars
+  
+  print(tempsum)
+  
+  tempsum
+}
+
+
+
 inv_logit <- function(x) {
   1 / (1 + exp(-x))
 }

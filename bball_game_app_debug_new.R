@@ -10,10 +10,9 @@
 library(tidyverse)
 library(rvest)
 library(shiny)
-library(rstan)
+library(cmdstanr)
 source("background_functions.R")
 options(mc.cores = parallel::detectCores())
-rstan_options(auto_write = TRUE)
 
 # First load and process the data from NBB.
 game_table <- readRDS("game_table.rds")
@@ -36,40 +35,35 @@ stan_data <- list(N_games = nrow(games_played),
                   )
 
 # Fit Stan model
-logit_model <- stan_model("NBA_logit_homecourt.stan")
+logit_model <- cmdstan_model("NBA_logit_homecourt.stan")
 
-fit_logit <- sampling(logit_model, data = stan_data, chains = 4, iter = 10000)
+fit_logit <- logit_model$sample(data = stan_data,
+                                chains = 4,
+                                iter_warmup = 5000,
+                                iter_sampling = 5000)
 
 # Extract and use output
-x <- summary(fit_logit, pars = c("team_skill", "home_court_advantage"))$summary[,1]
+tmptst <- fit_logit$summary()
+tempsummary <- fit_logit$summary(c("team_skill", "home_court_advantage"))
+x <- tempsummary$mean
 skill_est <- x[1:N_teams]
 hc_est <- x[N_teams + 1]
 skill_table <- tibble(id = 1L:11L, team_name = unique_teams, estimated_skill = skill_est)
 N_games_unplayed <- nrow(games_not_played)
 
-post <- extract(fit_logit, pars = c("team_skill", "home_court_advantage"), permuted = TRUE)
+post <- fit_logit$draws(variables = c("team_skill", "home_court_advantage"), format = "draws_matrix")
 
 home_win_prob <- numeric(N_games_unplayed)
 for (n in 1:N_games_unplayed) {
     home_win_prob[n] <- mean(
         inv_logit(
-            post$team_skill[, games_not_played$home_team_id[n]] + post$home_court_advantage -
-                post$team_skill[, games_not_played$away_team_id[n]]
+            post[, games_not_played$home_team_id[n]] + post[, N_teams + 1] -
+                post[, games_not_played$away_team_id[n]]
             )
     )
 }
 
 games_not_played <- games_not_played %>% select(home_team, away_team) %>% mutate(home_win_prob = home_win_prob)
-
-
-
-# home_win_prob <- numeric(N_games_unplayed)
-# for (n in 1:N_games_unplayed) {
-#     home_win_prob[n] <- inv_logit( skill_est[games_not_played$home_team_id[n]] + hc_est - skill_est[games_not_played$away_team_id[n]])
-# }
-# 
-# games_not_played <- games_not_played %>% select(home_team, away_team) %>% mutate(home_win_prob = home_win_prob)
-
 
 ############# End of pre-computed objects #############
 
@@ -124,9 +118,10 @@ server <- function(input, output, session) {
     })
     
     output$skill_est <- renderTable({
-        print_stanfit_custom_name(fit_logit,
-                                  regpattern = "team_skill", replace_by = unique_teams,
-                                  pars = c("team_skill", "home_court_advantage"))
+        print_cmdstan_custom_name(fit_logit,
+                                  regpattern = "team_skill",
+                                  replace_by = unique_teams,
+                                  variables = c("team_skill", "home_court_advantage"))
         skill_table %>% arrange(desc(estimated_skill))
     })
     
@@ -134,7 +129,8 @@ server <- function(input, output, session) {
         #stan_plot(fit_logit, pars = c("team_skill", "home_court_advantage"))
         tmp <- team_mapping_table %>% filter(team_name == input$team)
         id <- tmp$team_id
-        plotdata <- data.frame(skill = post$team_skill[, id])
+        plotdata <- data.frame(post[, id])
+        colnames(plotdata) <- "skill"
         
         ggplot(data = plotdata, aes(x = skill) ) +
             geom_histogram(fill = "lightblue", col = "black", bins = 30) + theme_bw() +
