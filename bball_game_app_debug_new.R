@@ -48,7 +48,7 @@ tempsummary <- fit_logit$summary(c("team_skill", "home_court_advantage"))
 x <- tempsummary$mean
 skill_est <- x[1:N_teams]
 hc_est <- x[N_teams + 1]
-skill_table <- tibble(id = 1L:11L, team_name = unique_teams, estimated_skill = skill_est)
+skill_table <- tibble(id = 1L:N_teams, team_name = unique_teams, estimated_skill = skill_est)
 N_games_unplayed <- nrow(games_not_played)
 
 post <- fit_logit$draws(variables = c("team_skill", "home_court_advantage"), format = "draws_matrix")

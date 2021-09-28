@@ -16,9 +16,7 @@ options(mc.cores = parallel::detectCores())
 rstan_options(auto_write = TRUE)
 
 # First load and process the data from NBB.
-nbb_link <- "https://www.basketball.nl/basketball/starten-met-basketball/vereniging-zoeken/club/463/team/381/bc-schrobbelaar-mse-3/competition/4988/"
-
-# old link: "https://www.basketball.nl/basketball/starten-met-basketball/vereniging-zoeken/club/463/team/381/bc-schrobbelaar-mse-3/competition/409/"
+nbb_link <- "https://www.basketball.nl/basketball/starten-met-basketball/vereniging-zoeken/club/463/team/381/bc-schrobbelaar-mse-3/competition/9799/"
 
 schrob <- read_html(nbb_link)
 
@@ -66,7 +64,7 @@ fit_logit <- sampling(logit_model, data = stan_data, chains = 4, iter = 10000)
 x <- summary(fit_logit, pars = c("team_skill", "home_court_advantage"))$summary[,1]
 skill_est <- x[1:N_teams]
 hc_est <- x[N_teams + 1]
-skill_table <- tibble(id = 1L:11L, team_name = unique_teams, estimated_skill = skill_est)
+skill_table <- tibble(id = 1L:N_teams, team_name = unique_teams, estimated_skill = skill_est)
 N_games_unplayed <- nrow(games_not_played)
 
 post <- extract(fit_logit, pars = c("team_skill", "home_court_advantage"), permuted = TRUE)

@@ -44,7 +44,7 @@ fit_logit <- sampling(logit_model, data = stan_data, chains = 4, iter = 10000)
 x <- summary(fit_logit, pars = c("team_skill", "home_court_advantage"))$summary[,1]
 skill_est <- x[1:N_teams]
 hc_est <- x[N_teams + 1]
-skill_table <- tibble(id = 1L:11L, team_name = unique_teams, estimated_skill = skill_est)
+skill_table <- tibble(id = 1L:N_teams, team_name = unique_teams, estimated_skill = skill_est)
 N_games_unplayed <- nrow(games_not_played)
 
 post <- extract(fit_logit, pars = c("team_skill", "home_court_advantage"), permuted = TRUE)
