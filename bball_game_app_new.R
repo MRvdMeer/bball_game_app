@@ -15,7 +15,9 @@ source("background_functions.R")
 options(mc.cores = parallel::detectCores())
 
 # First load and process the data from NBB.
-nbb_link <- "https://www.basketball.nl/basketball/starten-met-basketball/vereniging-zoeken/club/463/team/381/bc-schrobbelaar-mse-3/competition/4988/"
+nbb_link <- "https://www.basketball.nl/basketball/starten-met-basketball/vereniging-zoeken/club/463/team/381/bc-schrobbelaar-mse-3/competition/9799/"
+
+# older link: "https://www.basketball.nl/basketball/starten-met-basketball/vereniging-zoeken/club/463/team/381/bc-schrobbelaar-mse-3/competition/4988/"
 
 # old link: "https://www.basketball.nl/basketball/starten-met-basketball/vereniging-zoeken/club/463/team/381/bc-schrobbelaar-mse-3/competition/409/"
 
@@ -70,7 +72,7 @@ tempsummary <- fit_logit$summary(c("team_skill", "home_court_advantage"))
 x <- tempsummary$mean
 skill_est <- x[1:N_teams]
 hc_est <- x[N_teams + 1]
-skill_table <- tibble(id = 1L:11L, team_name = unique_teams, estimated_skill = skill_est)
+skill_table <- tibble(id = 1L:N_teams, team_name = unique_teams, estimated_skill = skill_est)
 N_games_unplayed <- nrow(games_not_played)
 
 post <- fit_logit$draws(variables = c("team_skill", "home_court_advantage"), format = "draws_matrix")
