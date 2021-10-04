@@ -44,6 +44,15 @@ team_id <- map_int(c(game_table$away_team, game_table$home_team), lookup_team_id
 game_table <- game_table %>% mutate(away_team_id = team_id[1:N_games], home_team_id = team_id[(N_games + 1):(2 * N_games)]) %>%
     select(home_team_id, home_team, home_score, away_team_id, away_team, away_score, home_win, played)
 
+compute_win_pct <- function(team_id, games = game_table) {
+    relevant_games <- games %>% filter(away_team_id == team_id | home_team_id == team_id)
+    N_games <- sum(!is.na(relevant_games$home_score))
+    N_wins <- nrow(relevant_games %>% filter((away_team_id == team_id) & !home_win)) +
+        nrow(relevant_games %>% filter((home_team_id == team_id) & home_win))
+    N_wins / N_games
+}
+
+team_win_pct <- map_dbl(team_mapping_table$team_id, compute_win_pct)
 
 rm(list = c("nbb_link", "schrob", "away_xml", "home_xml", "away", "home", "team_id"))
 
@@ -72,7 +81,7 @@ tempsummary <- fit_logit$summary(c("team_skill", "home_court_advantage"))
 x <- tempsummary$mean
 skill_est <- x[1:N_teams]
 hc_est <- x[N_teams + 1]
-skill_table <- tibble(id = 1L:N_teams, team_name = unique_teams, estimated_skill = skill_est)
+skill_table <- tibble(id = 1L:N_teams, team_name = unique_teams, estimated_skill = skill_est, win_pct = round(team_win_pct, digits = 2))
 N_games_unplayed <- nrow(games_not_played)
 
 post <- fit_logit$draws(variables = c("team_skill", "home_court_advantage"), format = "draws_matrix")
@@ -142,11 +151,7 @@ server <- function(input, output, session) {
     })
     
     output$skill_est <- renderTable({
-        print_cmdstan_custom_name(fit_logit,
-                                  regpattern = "team_skill",
-                                  replace_by = unique_teams,
-                                  variables = c("team_skill", "home_court_advantage"))
-        skill_table %>% arrange(desc(estimated_skill))
+        skill_table %>% select(team_name, estimated_skill, win_pct) %>% arrange(desc(estimated_skill))
     })
     
     output$plot <- renderPlot({
