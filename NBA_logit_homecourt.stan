@@ -22,7 +22,7 @@ transformed parameters {
 model {
   // priors
   team_skill ~ normal(0, 1);
-  home_court_advantage ~ normal(0, 1);
+  home_court_advantage ~ normal(0.5, 0.5);
   
   // likelihood
   home_win ~ bernoulli_logit(logit_prob_home_win);
