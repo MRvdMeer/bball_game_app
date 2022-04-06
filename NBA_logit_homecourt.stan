@@ -1,13 +1,13 @@
 data {
   int<lower = 1> N_games;
   int<lower = 2> N_teams;
-  int<lower = 0, upper = 1> home_win[N_games];
-  int<lower = 1, upper = N_teams> away_team_id[N_games];
-  int<lower = 1, upper = N_teams> home_team_id[N_games];
+  array[N_games] int<lower = 0, upper = 1> home_win;
+  array[N_games] int<lower = 1, upper = N_teams> away_team_id;
+  array[N_games] int<lower = 1, upper = N_teams> home_team_id;
 }
 
 parameters {
-  real team_skill[N_teams];
+  array[N_teams] real team_skill;
   real home_court_advantage;
 }
 
@@ -29,7 +29,7 @@ model {
 }
 
 generated quantities {
-  int home_win_rep[N_games];
+  array[N_games] int home_win_rep;
   for (n in 1:N_games) {
     home_win_rep[n] = bernoulli_logit_rng(logit_prob_home_win[n]);
   }
